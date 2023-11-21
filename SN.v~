@@ -1,0 +1,81 @@
+Require Import Bool Arith List.
+Import List.ListNotations.
+
+(*Syntaxe de bexp*)
+Inductive bexp :=
+| Btrue : bexp
+| Bfalse : bexp
+| Bnot : bexp -> bexp
+| Band : bexp -> bexp -> bexp
+| Bor : bexp -> bexp -> bexp
+.
+
+(*Syntaxe de notre langage *)
+Inductive whileBm :=
+| Skip : whileBm
+| Assign : nat -> bexp -> whileBm
+| Seq : whileBm -> whileBm -> whileBm
+| If : bexp -> whileBm -> whileBm -> whileBm
+| While : bexp -> whileBm -> whileBm
+.
+
+Definition state := list bool.
+
+Definition S1 := [true; false].
+Definition S2 := [false; false].
+Definition S3 := [true; true; false; true].
+
+Fixpoint get (x:nat) (s:state) : bool :=
+match x,s with
+| 0   , v::_      => v
+| S x1, _::l1 => get x1 l1
+| _   , _         => false
+end.
+
+Fixpoint update (s:state) (v:nat) (n:bool): state :=
+  match v,s with
+  | 0   , a :: l1 => n :: l1
+  | 0   , nil     => n :: []
+  | S v1, a :: l1 => a :: (update l1 v1 n)
+  | S v1, nil     => false :: (update nil v1 n)
+  end.
+
+Fixpoint evalB (b : bexp) (s : state) : bool :=
+  match b with
+  | Btrue => true
+  | Bfalse => false
+  | Bnot b => negb (evalB b s)
+  | Band e1 e2 => (evalB e1 s) && (evalB e2 s)
+  | Bor e1 e2 => (evalB e1 s) || (evalB e2 s)
+  end.
+
+Inductive SN: whileBm -> state -> state -> Prop :=
+| SN_Skip        : forall s,
+                   SN Skip s s
+| SN_Assign      : forall x a s,
+                   SN (Assign x a) s (update s x (evalB a s))
+| SN_Seq         : forall i1 i2 s s1 s2,
+                   SN i1 s s1 -> SN i2 s1 s2 -> SN (Seq i1 i2) s s2
+| SN_If_true     : forall b i1 i2 s s1,
+                   (evalB b s = true)  ->  SN i1 s s1 -> SN (If b i1 i2) s s1
+| SN_If_false    : forall b i1 i2 s s2,
+                   (evalB b s = false) ->  SN i2 s s2 -> SN (If b i1 i2) s s2
+| SN_While_false : forall b i s,
+                   (evalB b s = false) ->  SN (While b i) s s
+| SN_While_true  : forall b i s s1 s2,
+                   (evalB b s = true)  ->  SN i s s1 -> SN (While b i) s1 s2 ->
+                   SN (While b i) s s2
+.
+
+(** On code un programme P1 correspondant à
+    while (i=false) do {i:=not true;j:=true} *)
+Definition I := 1.
+Definition J := 0.
+Definition V := Bnot Btrue.
+Definition C := Bnot get
+
+Definition corps_boucle := Seq (Assign I V) (Assign J Bfalse).
+Definition P1 := While 
+
+Definition corps_boucle := Seq (Assign Il (Amo Ir N1)) (Assign Xl (Apl N1 Xr)).
+Definition P1 := While (Bnot (Beqnat Ir N0)) corps_boucle.
