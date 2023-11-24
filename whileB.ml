@@ -61,20 +61,13 @@ let rec p_Programme : char analist =
 type whileB =
   | Skip
   | Seq of whileB * whileB
-  | Affect of bexp * bexp
+  | Affect of char * bexp
   | If of bexp * whileB * whileB
   | While of bexp * whileB
 
 let pr_Affectation : (whileB, char) ranalist =
   fun l ->
-  l |> (pr_Variable ++> fun var->  terminal ':' --> terminal '=' -+> pr_Bexp ++> fun valeur -> epsilon_res (Affect (Bva var,valeur)))
-
-let _ = pr_Affectation (list_of_string "a:=0")
-let _ = pr_Affectation (list_of_string "b:=1")
-let _ = pr_Affectation (list_of_string "b:=a")
-let _ = pr_Affectation (list_of_string "b=a")
-let _ = pr_Affectation (list_of_string "b:=a;")
-let _ = pr_Affectation (list_of_string "g:=a;")
+  l |> (pr_Variable ++> fun var->  terminal ':' --> terminal '=' -+> pr_Bexp ++> fun valeur -> epsilon_res (Affect (var,valeur)))
 
 let pr_Condition : (bexp, char) ranalist =
   fun l ->

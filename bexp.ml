@@ -59,19 +59,19 @@ let rec p_Bexp : char analist =
 (****************************************Ranalist****************************************)
 
 type bexp =
-  | Bco of int
+  | Bco of bool
   | Bva of char
   | Bneg of bexp
   | Band of bexp * bexp
   | Bor of bexp * bexp
 
-let isConstanteR (c : char) : int option =
-  if (c = '1' || c = '0') then Some(Char.code c - Char.code '0') else None
+let isConstanteR (c : char) : bool option =
+  if (c = '1' || c = '0') then Some(c = '1') else None
 
 let isVariableR (c: char) : char option =
   if ( c= 'a' ||  c = 'b' || c = 'c' || c = 'd') then Some(c) else None
 
-let pr_Constante : (int, char) ranalist = terminal_res (isConstanteR)
+let pr_Constante : (bool, char) ranalist = terminal_res (isConstanteR)
 
 let pr_Variable : (char, char) ranalist = terminal_res (isVariableR)
 

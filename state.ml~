@@ -1,0 +1,45 @@
+#use "whileB.ml";;
+
+
+let rec get (x:int) (s:int list) : int =
+  match x,s with
+  | 0, v::s -> v
+  | i , x::l1 -> get (i-1) l1
+  | _, [] -> 0
+
+let tab = 7 :: 8 :: 9 :: 10 :: []
+
+let _ = get (-1) tab
+
+
+let rec update (s:int list) (v:int) (n:int): int list =
+  match v,s with
+  | 0   , a :: l1 -> n :: l1
+  | 0   , nil     -> n :: nil
+  | i, a :: l1 -> a :: (update l1 (i-1) n)
+  | i, nil     -> 0 :: (update nil (i-1) n)
+
+let _ = update tab 1 true
+
+
+let state = 1 :: 0 :: 1 ::[]
+
+let rec evalB = fun b s ->
+  match b with
+  | Bco(x) -> x=1
+  | Bva(v) -> (get (Char.code v - Char.code 'a') s) = 1
+  | Bneg(n) -> not (evalB n s)
+  | Band(x1, x2) -> (evalB x1 s) && (evalB x2 s)
+  | Bor(x1, x2) -> (evalB x1 s) || (evalB x2 s)
+
+let _ = evalB (Bva('b')) state
+let _ = evalB (Bneg(Bva('a'))) state
+let _ = evalB (Band(Bva('a'), Bva('c'))) state
+let _ = evalB (Bor(Bva('b'), Bva('b'))) state
+
+let rec evalW =
+  fun w s ->
+  match w with
+  | Skip -> s
+  | Seq(i1,i2) -> evalW i1 s |> evalW i2
+  | Affect c b2 -> update s (Char.code c - Char.code 'a')  
