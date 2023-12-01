@@ -1,19 +1,28 @@
 #use "anacomb.ml";;
 
 (***
+
 Grammaire :
 
-Constante ::= 0 | 1
-Variable ::= 'a' | 'b' | 'c' | 'd'
-Valeur ::= Variable | Constante
+Constante       ::= 0 | 1
 
-Bexp := Disjonction
-Disjonction := Conjonction . Opt_Disjonction
-Opt_Disjonction := '+' . Disjonction | epsilon
-Conjonction := Negation . Opt_Conjonction
-Opt_Conjonction := '.' . Conjonction | epsilon
-Negation := '!' Negation | Expression
-Expression := Valeur | '(' . Bexp . ')'
+Variable        ::= 'a' | 'b' | 'c' | 'd'
+
+Valeur          ::= Variable | Constante
+
+Bexp            ::= Disjonction
+
+Disjonction     ::= Conjonction · Opt_Disjonction
+
+Opt_Disjonction ::= Espace · '+' · Espace · Disjonction | Ɛ
+
+Conjonction     ::= Negation · Opt_Conjonction
+
+Opt_Conjonction ::= Espace · '.' · Espace · Conjonction | Ɛ
+
+Negation        ::= Espace · '!' · Espace · Negation | Expression
+
+Expression      ::= Valeur | '(' · Espace · Bexp · Espace · ')'
 
  ***)
 
@@ -25,7 +34,15 @@ let isVariable =
   fun (c : char) ->
   c= 'a' ||  c = 'b' || c = 'c' || c = 'd'
 
-                                         (************************************** Analist **************************************)
+(************************************** Analist **************************************)
+
+let p_TypeEspace : char analist =
+  fun l ->
+  l |> terminal ' ' -| terminal '\t' -| terminal '\n'
+
+let rec p_Espace : char analist =
+  fun l ->
+  l |> (p_TypeEspace --> p_Espace) -| epsilon
 
 let p_Constante : char analist = terminal_cond (isConstante)
 let p_Variable : char analist = terminal_cond (isVariable)
@@ -42,19 +59,19 @@ let rec p_Bexp : char analist =
       l |> p_Conjonction --> p_Opt_Disjonction and
     p_Opt_Disjonction : char analist =
       fun l ->
-      l |> (terminal '+' --> p_Disjonction) -| epsilon and
+      l |> (p_Espace --> terminal '+' --> p_Espace --> p_Disjonction) -| epsilon and
     p_Conjonction : char analist =
       fun l ->
       l |> p_Negation --> p_Opt_Conjonction and
     p_Opt_Conjonction : char analist =
       fun l ->
-      l |> (terminal '.' --> p_Conjonction) -| epsilon and
+      l |> (p_Espace --> terminal '.' --> p_Espace --> p_Conjonction) -| epsilon and
     p_Negation : char analist =
       fun l ->
-      l |> (terminal '!' --> p_Negation) -| p_Expression and
+      l |> (p_Espace --> terminal '!' --> p_Espace --> p_Negation) -| p_Expression and
     p_Expression : char analist =
       fun l ->
-      l |> (terminal '(' --> p_Bexp --> terminal ')') -| p_Valeur
+      l |> (terminal '(' --> p_Espace --> p_Bexp --> p_Espace --> terminal ')') -| p_Valeur
 
 (****************************************Ranalist****************************************)
 
@@ -87,17 +104,17 @@ let rec pr_Bexp : (bexp, char) ranalist =
       l |> pr_Conjonction ++> fun c -> pr_Opt_Disjonction c and
     pr_Opt_Disjonction (acc : bexp) : (bexp, char) ranalist =
       fun l ->
-      l |> (terminal '+' -+> pr_Disjonction ++> fun d ->  epsilon_res (Bor(acc, d))) +| epsilon_res acc and
+      l |> (p_Espace --> terminal '+' --> p_Espace -+> pr_Disjonction ++> fun d ->  epsilon_res (Bor(acc, d))) +| epsilon_res acc and
     pr_Conjonction : (bexp, char) ranalist =
       fun l ->
       l |> pr_Negation ++> fun n -> pr_Opt_Conjonction n and
     pr_Opt_Conjonction (acc : bexp) : (bexp, char) ranalist =
       fun l ->
-      l |> (terminal '.' -+> pr_Conjonction ++> fun c -> epsilon_res (Band(acc, c))) +| epsilon_res acc and
+      l |> (p_Espace --> terminal '.' --> p_Espace -+> pr_Conjonction ++> fun c -> epsilon_res (Band(acc, c))) +| epsilon_res acc and
     pr_Negation :(bexp, char) ranalist  =
       fun l ->
-      l |> (terminal '!' -+> pr_Negation ++> fun n -> epsilon_res (Bneg(n))) +| pr_Expression and
+      l |> (p_Espace --> terminal '!' --> p_Espace -+> pr_Negation ++> fun n -> epsilon_res (Bneg(n))) +| pr_Expression and
     pr_Expression : (bexp, char) ranalist =
       fun l ->
-      l |> (terminal '(' -+> pr_Bexp ++> fun b -> terminal ')' -+> epsilon_res b) +| pr_Valeur
+      l |> (terminal '(' --> p_Espace -+> pr_Bexp ++> fun b -> p_Espace --> terminal ')' --> p_Espace -+> epsilon_res b) +| pr_Valeur
 

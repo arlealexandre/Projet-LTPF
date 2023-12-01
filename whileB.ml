@@ -1,45 +1,64 @@
 #use "bexp.ml";;
 
 (***
-Grammaire :
 
-Constante ::= 0 | 1
-Variable ::= 'a' | 'b' | 'c' | 'd'
-Valeur ::= Variable | Constante
+Grammaire complète avec Bexp :
 
-Bexp := Disjonction
-Disjonction := Conjonction . Opt_Disjonction
-Opt_Disjonction := '+' . Disjonction | epsilon
-Conjonction := Negation . Opt_Conjonction
-Opt_Conjonction := '.' . Conjonction | epsilon
-Negation := '!' Negation | Expression
-Expression := Valeur | '(' . Bexp . ')'
+Constante       ::= 0 | 1
 
-Programme ::= Instruction·Séparateur
-Instruction ::= Affectation | While | If | Skip
-Separateur ::= ';'·Programme | Skip
-Affectation ::= Variable·':='·Bexp
-While ::= 'w'·Condition·'{'·Programme·'}'
-If ::= 'i'·Condition·'{'·Programme·'}'
-Condition ::= '('·Bexp·')'
-Skip ::= Ɛ
+Variable        ::= 'a' | 'b' | 'c' | 'd'
+
+Valeur          ::= Variable | Constante
+
+Bexp            ::= Disjonction
+
+Disjonction     ::= Conjonction · Opt_Disjonction
+
+Opt_Disjonction ::= '+' · Disjonction | Ɛ
+
+Conjonction     ::= Negation · Opt_Conjonction
+
+Opt_Conjonction ::= '.' · Conjonction | Ɛ
+
+Negation        ::= '!' Negation | Expression
+
+Expression      ::= Valeur | '(' · Bexp · ')'
+
+Programme       ::= Espace · Instruction · Espace · Separateur · Espace
+
+TypeEspace      ::= ' ' | '\t' | '\n'
+
+Espace          ::= TypeEspace · Espace | Ɛ 
+
+Instruction     ::= Affectation | While | If | Skip
+
+Separateur      ::= ';' ·  Programme | Skip
+
+Affectation     ::= Variable · Espace · ':=' · Espace · Bexp
+
+While           ::= 'w' · Condition · '{' · Programme · '}'
+
+If              ::= 'i' · Condition · '{' · Programme · '}'
+
+Condition       ::= Espace · '(' · Espace · Bexp · Espace · ')' · Espace
+
+Skip            ::= Ɛ
+
  ***)
 
 (************************************** Analist **************************************)
 
-
 let p_Affectation : char analist =
   fun l ->
-  l |> p_Variable --> terminal ':' --> terminal '=' --> p_Bexp
+  l |> p_Espace --> p_Variable --> p_Espace --> terminal ':' --> terminal '='  --> p_Espace --> p_Bexp
 
 let p_Condition : char analist =
   fun l ->
-  l |> terminal '(' --> p_Bexp --> terminal ')'
-
+  l |> p_Espace --> terminal '(' --> p_Espace --> p_Bexp --> p_Espace --> terminal ')' --> p_Espace
 
 let rec p_Programme : char analist =
   fun l ->
-  l |> p_Instruction --> p_Separateur and
+  l |> p_Espace --> p_Instruction --> p_Espace --> p_Separateur --> p_Espace and
     p_Instruction : char analist =
       fun l ->
       l |> p_Affectation -| p_While -| p_If -| p_Skip and 
@@ -67,15 +86,15 @@ type whileB =
 
 let pr_Affectation : (whileB, char) ranalist =
   fun l ->
-  l |> (pr_Variable ++> fun var->  terminal ':' --> terminal '=' -+> pr_Bexp ++> fun valeur -> epsilon_res (Affect (var,valeur)))
+  l |> (p_Espace -+> pr_Variable ++> fun var->  p_Espace --> terminal ':' --> terminal '=' --> p_Espace -+> pr_Bexp ++> fun valeur -> epsilon_res (Affect (var,valeur)))
 
 let pr_Condition : (bexp, char) ranalist =
   fun l ->
-  l |> ( terminal '(' -+> pr_Bexp ++> fun var -> terminal ')' -+> epsilon_res var)
+  l |> ( p_Espace --> terminal '(' --> p_Espace -+> pr_Bexp ++> fun var -> p_Espace --> terminal ')' --> p_Espace -+> epsilon_res var)
 
 let rec pr_Programme : (whileB, char) ranalist =
   fun l ->
-  l |> pr_Instruction ++> fun exp -> pr_Separateur exp and
+  l |> p_Espace -+> pr_Instruction ++> fun exp -> p_Espace -+> pr_Separateur exp ++> fun res -> p_Espace -+> epsilon_res res and
      pr_Instruction : (whileB, char) ranalist =
       fun l ->
       l |> pr_Affectation +| pr_While +| pr_If +| pr_Skip and
