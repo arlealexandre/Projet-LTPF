@@ -5,6 +5,7 @@ type aexp =
 | Apl of aexp * aexp
 | Amo of aexp * aexp
 | Amu of aexp * aexp
+| Adi of aexp * aexp
 
 (*Grammaire*)
 (***
@@ -16,6 +17,13 @@ SM ::= '*' T SM | ε
 T := C | '(' E ')'
  ***)
 
+let isDigit = fun c ->
+  let x = Char.code c - Char.code '0' in x >= 0 && x <= 9
+
+let p_digit : char analist = terminal_cond (isDigit)
+
+let rec p_nombre : char analist = fun l ->
+  l |> p_digit --> (p_nombre -| epsilon)
 
 let rec p_aexp : char analist = fun l ->
   l |> p_plus and
@@ -28,13 +36,16 @@ let rec p_aexp : char analist = fun l ->
     p_mul_opt : char analist = fun l ->
       l |> (terminal '*' --> p_number --> p_mul_opt) -| epsilon and
     p_number : char analist = fun l ->
-      l |> p_c -| (terminal '(' --> p_aexp --> terminal ')'
+      l |> p_nombre -| (terminal '(' --> p_aexp --> terminal ')')
 
+let is_Int (c : char) : 'res option =
+  let x = Char.code c - Char.code '0' in
+  if (x >= 0 && x < 10) then Some(x) else None
 
 let rec pr_aexp : (aexp, char) ranalist =
   fun l ->
-  l |> pr_Plus and
-    pr_Plus : (aexp, char) ranalist =
+  l |> pr_P and
+    pr_P : (aexp, char) ranalist =
       fun l ->
       l |> pr_M ++> fun a -> pr_SP a and
     pr_SP (x : aexp)  : (aexp, char) ranalist =
@@ -45,19 +56,17 @@ let rec pr_aexp : (aexp, char) ranalist =
       l |> pr_T1 ++> fun a -> pr_SM a and
     pr_SM (x : aexp)  : (aexp, char) ranalist =
       fun l ->
-      l |> (terminal '*' -+> pr_T1 ++> fun a -> pr_SM (Amu(x,a))) +| (epsilon_res x) and
+      l |> (terminal '*' -+> pr_T1 ++> fun a -> pr_SM (Amu(x,a))) +|  (terminal '/' -+> pr_T1 ++> fun a -> pr_SM (Adi(x,a))) +| (epsilon_res x) and
     pr_T1 : (aexp, char) ranalist =
       fun l ->
-      l |> (pr_C ++> fun a -> epsilon_res (Acst(a))) +| (terminal '(' -+> pr_E2 ++> fun a -> terminal ')' -+> epsilon_res a)
+      l |> (pr_int ++> fun i -> pr_int_suite i) +| (terminal '(' -+> pr_aexp ++> fun a -> terminal ')' -+> epsilon_res a) and
+    pr_int : (int, char) ranalist = fun l ->
+      l |> terminal_res (is_Int) and
+    pr_int_suite (i : int) : (aexp, char) ranalist = fun l ->
+      l |> (terminal_res(is_Int) ++> fun i' -> pr_int_suite (i*10+i')) +| epsilon_res (Acst (i))
 
-let expr2 = list_of_string "3-8*3*3"
-let bigExpr2 = list_of_string "3+(8-3)*(8+3)"
+let _ = pr_aexp (list_of_string ("3+2/5*224"))
 
-let _ = let (aex, liste) = pr_E2 expr2 in assert (aex = Amo (Acst 3, Amu (Amu (Acst 8, Acst 3), Acst 3)) && liste = [])
-let _ = let (aex, liste) = pr_E2 bigExpr2 in assert (aex = Apl (Acst 3, Amu (Amo (Acst 8, Acst 3), Apl (Acst 8, Acst 3))) && liste = [])
-let _ = let (aex, liste) = pr_E1 bigExpr in assert (aex = Apl (Apl (Acst 8, Acst 3), Acst 8) && liste = [])
-let _ = let (aex, liste) = pr_E1 bigbigExpr in assert (aex = Apl (Apl (Acst 3, Apl (Acst 8, Acst 3)), Acst 8) && liste = [])
-let _ = let (aex, liste) = pr_E1 bigValue in assert (aex = Acst 8 && liste = [])
 
 
 

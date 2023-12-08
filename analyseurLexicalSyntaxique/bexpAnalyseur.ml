@@ -1,4 +1,5 @@
 #use "../anacomb.ml";;
+#use "aexpAnalyseur.ml";;
 #use "../bexp.ml";;
 
 (***
@@ -57,6 +58,12 @@ let t_bool : char analist = fun l ->
 let t_fun : char analist = fun l ->
   l |> terminal 'f' --> terminal 'u' --> terminal 'n'
 
+let t_return : char analist = fun l ->
+  l |> terminal 'r' --> terminal 'e' --> terminal 't' --> terminal 'u' --> terminal 'r' --> terminal 'n'
+
+let t_null : char analist = fun l ->
+  l |> terminal 'n' --> terminal 'u' --> terminal 'l' --> terminal 'l'
+
 let p_bool : char analist = fun l ->
   l |> (terminal 't' --> terminal 'r' --> terminal 'u' --> terminal 'e')
        -| (terminal 'f' --> terminal 'a' --> terminal 'l' --> terminal 's' --> terminal 'e')
@@ -67,11 +74,7 @@ let p_type : char analist = fun l ->
 let isLetter = fun c ->
   (Char.code c > 64 && Char.code c < 91) || (Char.code c > 96 && Char.code c < 123)
 
-let isDigit = fun c ->
-  let x = Char.code c - Char.code '0' in x >= 0 && x <= 9
-
 let p_letter : char analist = terminal_cond (isLetter)
-let p_digit : char analist = terminal_cond (isDigit)
 
 let rec p_suite : char analist = fun l ->
   l |> ((p_letter -| p_digit) --> p_suite) -| epsilon
@@ -79,22 +82,8 @@ let rec p_suite : char analist = fun l ->
 let p_variable : char analist = fun l ->
   l |> p_letter --> p_suite
 
-let rec p_nombre : char analist = fun l ->
-  l |> p_digit --> (p_nombre -| epsilon)
-
-let rec p_aexp : char analist = fun l ->
-  l |> p_plus and
-    p_plus : char analist = fun l ->
-      l |> p_mul --> p_plus_opt and
-    p_mul : char analist = fun l ->
-      l |> p_number --> p_mul_opt and
-    p_plus_opt : char analist = fun l ->
-      l |> (terminal '+' --> p_mul --> p_plus_opt) -| (terminal '-' --> p_mul --> p_plus_opt) -| epsilon and
-    p_mul_opt : char analist = fun l ->
-      l |> (terminal '*' --> p_number --> p_mul_opt) -| epsilon and
-    p_number : char analist = fun l ->
-      l |> p_nombre -| (terminal '(' --> p_aexp --> terminal ')')
-
+let p_return : char analist = fun l ->
+  l |> t_return --> (p_variable -| p_aexp -| p_Bexp -| t_null)
 
 let rec p_programme : char analist = fun l ->
   l |> p_instruction --> p_separateur and
@@ -115,33 +104,33 @@ let rec p_programme : char analist = fun l ->
     p_separateur : char analist = fun l ->
       l |> (terminal ';' --> p_programme) -| epsilon and
     p_valeur : char analist = fun l ->
-      l |> p_aexp -| p_Bexp -| (terminal '{' --> p_programme --> terminal '}')
+      l |> p_aexp -| p_Bexp -| (terminal '{' --> p_programme --> p_return --> terminal '}')
 
 
 let _ = isLetter 'a'
 let _ = p_aexp (list_of_string ("5+3"))
 let _ = p_declaration (list_of_string ("inta:=5+3"))
 let _ = p_if (list_of_string ("if(false){}"))
-let _ = p_programme (list_of_string("funf:={}"))
-let _ = p_programme (list_of_string ("inta:=true;aaa:=12+13*5;if(true){boola:=2}elseif(false){}else{funx:={}}"))
+let _ = p_programme (list_of_string("funf:={returntrue}"))
+let _ = p_programme (list_of_string ("inta:=true;aaa:=12+13*5;if(true){boola:=2}elseif(false){}else{funx:={returnnull}}"))
 
 type typeV =
   | Int
   | Bool
   | Fun
 
-type aexp =
-| Acst of int
-| Apl of aexp * aexp
-| Amo of aexp * aexp
-| Amu of aexp * aexp
+type return =
+  | Null
+  | ReturnI of aexp
+  | ReturnB of bexp
+  | ReturnV of char list
 
 type programme =
   | Skip
   | Seq of programme * programme
   | AffectI of char list * aexp
   | AffectB of char list * bexp
-  | AffectF of char list * programme
+  | AffectF of char list * programme * return
   | Declaration of typeV * programme
   | If of bexp * programme * programme
   | While of bexp * programme
@@ -164,10 +153,6 @@ let isLetterR = fun c ->
 let isDigitR = fun c ->
   let x = Char.code c - Char.code '0' in if(x >= 0 && x <= 9) then Some(c) else None
 
-let is_Int (c : char) : 'res option =
-  let x = Char.code c - Char.code '0' in
-  if (x >= 0 && x < 10) then Some(x) else None
-
 let pr_letter : (char, char) ranalist = terminal_res (isLetterR)
 let pr_digit : (char, char) ranalist = terminal_res (isDigitR)
 
@@ -179,38 +164,19 @@ let rec pr_suite (x : char list) : (char list, char) ranalist = fun (l : char li
 let pr_nom : (char list, char) ranalist = fun l ->
   l |> pr_letter ++> fun x -> pr_suite [x]
 
-let rec pr_aexp : (aexp, char) ranalist =
-  fun l ->
-  l |> pr_P and
-    pr_P : (aexp, char) ranalist =
-      fun l ->
-      l |> pr_M ++> fun a -> pr_SP a and
-    pr_SP (x : aexp)  : (aexp, char) ranalist =
-      fun l ->
-      l |> (terminal '-' -+> pr_M ++> fun a -> pr_SP (Amo(x,a))) +|(terminal '+' -+> pr_M ++> fun a -> pr_SP (Apl(x,a))) +| (epsilon_res x) and
-    pr_M : (aexp, char) ranalist =
-      fun l ->
-      l |> pr_T1 ++> fun a -> pr_SM a and
-    pr_SM (x : aexp)  : (aexp, char) ranalist =
-      fun l ->
-      l |> (terminal '*' -+> pr_T1 ++> fun a -> pr_SM (Amu(x,a))) +| (epsilon_res x) and
-    pr_T1 : (aexp, char) ranalist =
-      fun l ->
-      l |> (pr_int ++> fun i -> pr_int_suite i) +| (terminal '(' -+> pr_aexp ++> fun a -> terminal ')' -+> epsilon_res a) and
-    pr_int : (int, char) ranalist = fun l ->
-      l |> terminal_res (is_Int) and
-    pr_int_suite (i : int) : (aexp, char) ranalist = fun l ->
-      l |> (terminal_res(is_Int) ++> fun i' -> pr_int_suite (i*10+i')) +| epsilon_res (Acst (i))
-
-let _ = pr_aexp (list_of_string ("12+3"))
-let _ = pr_aexp (list_of_string ("20001+3-5*2"))
-
 
 let pr_affectI (nom : char list) : (programme, char) ranalist = fun l ->
   l |> pr_aexp ++> fun exp -> epsilon_res (AffectI (nom,exp))
 
 let pr_affectB (nom : char list) : (programme, char) ranalist = fun l ->
   l |> pr_Bexp ++> fun exp -> epsilon_res (AffectB (nom,exp))
+
+let pr_return : (return, char) ranalist = fun l ->
+  l |> t_return -+>
+         ((t_null -+> epsilon_res (Null))
+          +| (pr_aexp ++> fun aexp -> epsilon_res (ReturnI (aexp)))
+          +|  (pr_nom ++> fun nom -> epsilon_res (ReturnV (nom)))
+          +| (pr_Bexp ++> fun bexp -> epsilon_res (ReturnB (bexp))))
   
 
 let rec pr_programme : (programme, char) ranalist = fun l ->
@@ -226,6 +192,10 @@ let rec pr_programme : (programme, char) ranalist = fun l ->
       l |> pr_nom ++> fun nom ->
                       terminal ':' --> terminal '='
                       -+> (pr_affectI nom +| pr_affectB nom +| pr_affectF nom) and
+    pr_affectF (nom : char list) : (programme, char) ranalist = fun l ->
+      l |> terminal '{' -+> pr_programme ++>
+             fun prog -> pr_return ++>
+                           fun ret -> terminal '}'-+> epsilon_res (AffectF (nom,prog,ret)) and
       pr_if : (programme, char) ranalist = fun l ->
       l |> t_if --> terminal '(' -+> pr_Bexp ++>
              fun bexp -> terminal ')' --> terminal '{' -+> pr_programme ++>
@@ -236,8 +206,6 @@ let rec pr_programme : (programme, char) ranalist = fun l ->
                          +| (epsilon_res (If (bexp,prog,Skip))) and
       pr_while : (programme, char) ranalist = fun l ->
         l |> t_while --> terminal '(' -+> pr_Bexp ++> fun bexp -> terminal ')' --> terminal '{' -+> pr_programme ++> fun prog -> terminal '}' -+> epsilon_res (While (bexp,prog)) and
-      pr_affectF (nom : char list) : (programme, char) ranalist = fun l ->
-        l |> terminal '{' -+> pr_programme ++> fun prog -> terminal '}' -+> epsilon_res (AffectF (nom,prog)) and
       pr_skip : (programme, char) ranalist = fun l ->
         l |> epsilon_res (Skip) and
       pr_separateur (exp : programme) : (programme, char) ranalist = fun l ->
@@ -245,6 +213,7 @@ let rec pr_programme : (programme, char) ranalist = fun l ->
              +| epsilon_res exp
 
 let _ = pr_if (list_of_string ("if(true){}"))
+let _ = pr_programme (list_of_string ("inta:=2;funf:={intb:=true;returnb}"))
 let _ = pr_programme
           (list_of_string
-             ("inta:=12+5;if(true){funf:={intb:=false}}elseif(false){while(b){}}"))
+             ("inta:=12+5;if(true){funf:={intb:=false;returnnull}}elseif(false){while(b){}}"))
