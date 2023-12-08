@@ -126,6 +126,10 @@ let rec p_Bexp : char analist =
       fun l ->
       l |> (terminal '(' --> p_Espace --> p_Bexp --> p_Espace --> terminal ')') -| p_Valeur
 
+let _ = p_Sup (list_of_string "$>$")
+
+let _ = p_Bexp (list_of_string "$>$.a+$<$.$<=$+$>=$")
+
 (****************************************Ranalist****************************************)
 
 type bexp =
@@ -154,6 +158,15 @@ let pr_Variable : (char, char) ranalist = terminal_res (isVariableR)
 let pr_Bool : (bool, char) ranalist = fun l ->
   l |> (terminal 't' --> terminal 'r' --> terminal 'u' -+> terminal_res (isBool true)) +| (terminal 'f' --> terminal 'a' --> terminal 'l' --> terminal 's' -+> terminal_res (isBool false))
 
+
+
+
+let _ = pr_aexp (list_of_string "$")
+
+
+
+
+
 let pr_Sup_egale : (bexp, char) ranalist =
   fun l ->
   l |> (pr_aexp ++> fun op1 -> terminal '>' --> terminal '=' -+> pr_aexp ++> fun op2 -> epsilon_res (Bsupeg(op1,op2)))
@@ -166,13 +179,13 @@ let pr_Inf_egale : (bexp, char) ranalist =
   fun l ->
     l |> pr_aexp ++> fun op1 -> terminal '<' --> terminal '=' -+> pr_aexp ++> fun op2 -> epsilon_res (Binfeg(op1,op2))
 
-let pr_Inf : (bexp, char) ranalist =
+let p_Inf : (bexp, char) ranalist =
   fun l ->
-   l |> pr_aexp ++> fun op1 -> terminal '<' -+> pr_aexp ++> fun op2 -> epsilon_res (Binf(op1,op2))
+   l |> pr_aexp ++> fun op1 -> terminal '<' --> terminal '=' -+> pr_aexp ++> fun op2 -> epsilon_res (Binf(op1,op2))
 
 let pr_Comparaison : (bexp, char) ranalist =
   fun l ->
-  l |> pr_Sup_egale +| pr_Sup +| pr_Inf_egale +| pr_Inf
+  l |> pr_Sup_egale -| pr_Sup -| pr_Inf_egale -| pr_Inf
 
 let pr_Valeur : (bexp, char) ranalist =
   fun l ->

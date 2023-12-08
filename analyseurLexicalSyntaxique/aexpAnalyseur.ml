@@ -1,11 +1,12 @@
-#use "../anacomb.ml";;
-
+#use "anacomb.ml";;
+#use "variableAnalyseur.ml";;
 type aexp =
-| Acst of int
-| Apl of aexp * aexp
-| Amo of aexp * aexp
-| Amu of aexp * aexp
-| Adi of aexp * aexp
+  | Acst of int
+  | Ava of char list
+  | Apl of aexp * aexp
+  | Amo of aexp * aexp
+  | Amu of aexp * aexp
+  | Adi of aexp * aexp
 
 (*Grammaire*)
 (***
@@ -36,7 +37,9 @@ let rec p_aexp : char analist = fun l ->
     p_mul_opt : char analist = fun l ->
       l |> (terminal '*' --> p_number --> p_mul_opt) -| epsilon and
     p_number : char analist = fun l ->
-      l |> p_nombre -| (terminal '(' --> p_aexp --> terminal ')')
+      l |> p_nombre -| (terminal '(' --> p_aexp --> terminal ')') -| p_nom
+
+let _ = p_aexp (list_of_string ("a+5-b*tri_insertion_polyglote"))
 
 let is_Int (c : char) : 'res option =
   let x = Char.code c - Char.code '0' in
@@ -59,13 +62,13 @@ let rec pr_aexp : (aexp, char) ranalist =
       l |> (terminal '*' -+> pr_T1 ++> fun a -> pr_SM (Amu(x,a))) +|  (terminal '/' -+> pr_T1 ++> fun a -> pr_SM (Adi(x,a))) +| (epsilon_res x) and
     pr_T1 : (aexp, char) ranalist =
       fun l ->
-      l |> (pr_int ++> fun i -> pr_int_suite i) +| (terminal '(' -+> pr_aexp ++> fun a -> terminal ')' -+> epsilon_res a) and
+      l |> (pr_int ++> fun i -> pr_int_suite i) +| (terminal '(' -+> pr_aexp ++> fun a -> terminal ')' -+> epsilon_res a)  +| (pr_nom ++> fun nom -> epsilon_res (Ava nom)) and
     pr_int : (int, char) ranalist = fun l ->
       l |> terminal_res (is_Int) and
     pr_int_suite (i : int) : (aexp, char) ranalist = fun l ->
       l |> (terminal_res(is_Int) ++> fun i' -> pr_int_suite (i*10+i')) +| epsilon_res (Acst (i))
 
-let _ = pr_aexp (list_of_string ("3+2/5*224"))
+let _ = pr_aexp (list_of_string ("3+2/5*224+jaime_trop_les_gens"))
 
 
 

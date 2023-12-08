@@ -46,12 +46,10 @@ let rec p_Espace : char analist =
 
 let p_Constante : char analist = terminal_cond (isConstante)
 let p_Variable : char analist = terminal_cond (isVariable)
-let p_Bool : char analist = fun l ->
-  l |> (terminal 't' --> terminal 'r' --> terminal 'u' --> terminal 'e') -| (terminal 'f' --> terminal 'a' --> terminal 'l' --> terminal 's' --> terminal 'e')
 
 let p_Valeur : char analist =
   fun l ->
-  l |> p_Variable -| p_Constante -| p_Bool
+  l |> p_Variable -| p_Constante
 
 let rec p_Bexp : char analist =
   fun l ->
@@ -90,18 +88,13 @@ let isConstanteR (c : char) : bool option =
 let isVariableR (c: char) : char option =
   if ( c= 'a' ||  c = 'b' || c = 'c' || c = 'd') then Some(c) else None
 
-let isBool (b : bool) (c : char) : bool option = if(c = 'e') then Some(b) else None
-
 let pr_Constante : (bool, char) ranalist = terminal_res (isConstanteR)
 
 let pr_Variable : (char, char) ranalist = terminal_res (isVariableR)
 
-let pr_Bool : (bool, char) ranalist = fun l ->
-  l |> (terminal 't' --> terminal 'r' --> terminal 'u' -+> terminal_res (isBool true)) +| (terminal 'f' --> terminal 'a' --> terminal 'l' --> terminal 's' -+> terminal_res (isBool false))
-
 let pr_Valeur : (bexp, char) ranalist =
   fun l ->
-  l |> (pr_Variable ++> fun v->  epsilon_res (Bva v)) +| (pr_Constante ++> fun v -> epsilon_res (Bco v)) +| (pr_Bool ++> fun v -> epsilon_res (Bco v))
+  l |> (pr_Variable ++> fun v->  epsilon_res (Bva v)) +| (pr_Constante ++> fun v -> epsilon_res (Bco v))
 
 let rec pr_Bexp : (bexp, char) ranalist =
   fun l ->

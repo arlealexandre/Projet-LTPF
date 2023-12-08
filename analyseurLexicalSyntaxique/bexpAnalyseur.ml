@@ -1,219 +1,227 @@
-#use "../anacomb.ml";;
+#use "anacomb.ml";;
 #use "aexpAnalyseur.ml";;
-#use "../bexp.ml";;
 
 (***
+
 Grammaire :
 
-Expression ::= Aexp | Bexp
-Valeur ::= Variable | Constante
+Constante       ::= true | false
 
-Variable ::= nom . suite
-Suite ::= char | digit | epsilon
+Variable        ::= 
 
-Booleen ::= 'True' | 'False'
+Sup_Egale       ::= aexp '>' '=' aexp
 
-Bexp ::= Disjonction
-Disjonction := Conjonction . Opt_Disjonction
-Opt_Disjonction := '+' . Disjonction | epsilon
-Conjonction := Negation . Opt_Conjonction
-Opt_Conjonction := '.' . Conjonction | epsilon
-Negation := '!' Negation | Expression
-Expression := Booleen | '(' . Bexp . ')'
+Sup             ::= aexp '>' aexp
 
-Aexp ::= PlusMoins
-PlusMoins ::= Mul_Div opt_plus_moins
-Mul_Div ::= Term opt_mul_div 
-opt_plus_moins ::= ’+’  Mul_Div opt_plus_moins | '-' Mul_Div opt_plus_moins | ε
-opt_mul_div ::= '*' Term opt_mul_div | '/' Term opt_mul_div | ε
-Term := Constante | '(' Aexp ')'
-Constante ::= Chiffre opt_chiffre
+Inf_Egale       ::= aexp '<' '=' aexp
 
-Programme ::= Instruction·Séparateur
-Instruction ::= Declaration | Affectation | While | If | Fonction | Skip
-Separateur ::= ';'·Programme | Skip
-Declaration ::= token . Affectation
-Affectation ::= Variable·':=' · Exp
-While ::= 'w'·Condition·'{'·Programme·'}'
-If ::= 'if'·Condition·'{'·Programme·'}' . if_opt
-if_opt ::= 'else' If | 'else' . { . Programme . '}' | epsilon
-Condition ::= '('·Bexp·')'
-Skip ::= Ɛ
+Inf             ::= aexp '<' aexp
+
+Equation        ::= aexp '=' aexp 
+
+Valeur          ::= Variable | Constante | Comparaison
+
+Bexp            ::= Disjonction
+
+Disjonction     ::= Conjonction · Opt_Disjonction
+
+Opt_Disjonction ::= Espace · '|' . '|' · Espace · Disjonction | Ɛ
+
+Conjonction     ::= Negation · Opt_Conjonction
+
+Opt_Conjonction ::= Espace · '. '&' . '&' · Espace · Conjonction | Ɛ
+
+Negation        ::= Espace · '!' · Espace · Negation | Expression
+
+Expression      ::= Valeur | '(' · Espace · Bexp · Espace · ')'
+
  ***)
-let t_while : char analist = fun l ->
-  l |> terminal 'w' --> terminal 'h' --> terminal 'i' --> terminal 'l' --> terminal 'e'
+(************************************* A supprimer : temp aexp *********************************************************)
 
-let t_if : char analist = fun l ->
-  l |> terminal 'i' --> terminal 'f'
-
-let t_else : char analist = fun l ->
-  l |> terminal 'e' --> terminal 'l' --> terminal 's' --> terminal 'e'
-
-let t_int : char analist = fun l ->
-  l |> terminal 'i' --> terminal 'n' --> terminal 't'
-
-let t_bool : char analist = fun l ->
-  l |> terminal 'b' --> terminal 'o' --> terminal 'o' --> terminal 'l'
-
-let t_fun : char analist = fun l ->
-  l |> terminal 'f' --> terminal 'u' --> terminal 'n'
-
-let t_return : char analist = fun l ->
-  l |> terminal 'r' --> terminal 'e' --> terminal 't' --> terminal 'u' --> terminal 'r' --> terminal 'n'
-
-let t_null : char analist = fun l ->
-  l |> terminal 'n' --> terminal 'u' --> terminal 'l' --> terminal 'l'
-
-let p_bool : char analist = fun l ->
-  l |> (terminal 't' --> terminal 'r' --> terminal 'u' --> terminal 'e')
-       -| (terminal 'f' --> terminal 'a' --> terminal 'l' --> terminal 's' --> terminal 'e')
-
-let p_type : char analist = fun l ->
-  l |> t_int -| t_bool -| t_fun
-
-let isLetter = fun c ->
-  (Char.code c > 64 && Char.code c < 91) || (Char.code c > 96 && Char.code c < 123)
-
-let p_letter : char analist = terminal_cond (isLetter)
-
-let rec p_suite : char analist = fun l ->
-  l |> ((p_letter -| p_digit) --> p_suite) -| epsilon
-
-let p_variable : char analist = fun l ->
-  l |> p_letter --> p_suite
-
-let p_return : char analist = fun l ->
-  l |> t_return --> (p_variable -| p_aexp -| p_Bexp -| t_null)
-
-let rec p_programme : char analist = fun l ->
-  l |> p_instruction --> p_separateur and
-    p_instruction : char analist = fun l ->
-      l |> p_while -| p_if -| p_declaration -| p_affectation -| p_skip and
-    p_declaration : char analist = fun l ->
-      l |> p_type --> p_affectation and
-    p_affectation : char analist = fun l ->
-      l |> p_variable --> terminal ':' --> terminal '=' --> p_valeur and
-    p_while : char analist = fun l ->
-      l |> t_while --> terminal '(' --> p_Bexp --> terminal ')' --> terminal '{' --> p_programme --> terminal '}' and
-    p_if : char analist = fun l ->
-      l |> t_if --> terminal '(' --> p_Bexp --> terminal ')' --> terminal '{' --> p_programme --> terminal '}' --> p_opt_if and
-    p_opt_if : char analist = fun l ->
-      l |> (t_else --> p_if --> p_opt_if) -| (t_else --> terminal '{' --> p_programme  --> terminal '}') -| epsilon and
-    p_skip : char analist = fun l ->
-      l |> epsilon and
-    p_separateur : char analist = fun l ->
-      l |> (terminal ';' --> p_programme) -| epsilon and
-    p_valeur : char analist = fun l ->
-      l |> p_aexp -| p_Bexp -| (terminal '{' --> p_programme --> p_return --> terminal '}')
-
-
-let _ = isLetter 'a'
-let _ = p_aexp (list_of_string ("5+3"))
-let _ = p_declaration (list_of_string ("inta:=5+3"))
-let _ = p_if (list_of_string ("if(false){}"))
-let _ = p_programme (list_of_string("funf:={returntrue}"))
-let _ = p_programme (list_of_string ("inta:=true;aaa:=12+13*5;if(true){boola:=2}elseif(false){}else{funx:={returnnull}}"))
-
-type typeV =
-  | Int
-  | Bool
-  | Fun
-
-type return =
-  | Null
-  | ReturnI of aexp
-  | ReturnB of bexp
-  | ReturnV of char list
-
-type programme =
-  | Skip
-  | Seq of programme * programme
-  | AffectI of char list * aexp
-  | AffectB of char list * bexp
-  | AffectF of char list * programme * return
-  | Declaration of typeV * programme
-  | If of bexp * programme * programme
-  | While of bexp * programme
-
-type dictionnaire =
-  | VInt of typeV * int
-  | VBool of typeV * bool
-  | VFun of typeV * programme
-
-
-let rec concat = fun (l1 : char list) (l2 : char list) ->
-  match l1 with
-  | x::q -> x::(concat q l2)
-  | _ -> l2
-
-let isLetterR = fun c ->
-  if((Char.code c > 64 && Char.code c < 91) || (Char.code c > 96 && Char.code c < 123))
-  then Some(c) else None
-
-let isDigitR = fun c ->
-  let x = Char.code c - Char.code '0' in if(x >= 0 && x <= 9) then Some(c) else None
-
-let pr_letter : (char, char) ranalist = terminal_res (isLetterR)
-let pr_digit : (char, char) ranalist = terminal_res (isDigitR)
-
-let rec pr_suite (x : char list) : (char list, char) ranalist = fun (l : char list) ->
-  l |> (pr_letter ++> fun (x' : char)  -> pr_suite (concat x [x']))
-       +| (pr_digit ++> fun i -> pr_suite (concat x [i]))
-       +| epsilon_res x
-
-let pr_nom : (char list, char) ranalist = fun l ->
-  l |> pr_letter ++> fun x -> pr_suite [x]
-
-
-let pr_affectI (nom : char list) : (programme, char) ranalist = fun l ->
-  l |> pr_aexp ++> fun exp -> epsilon_res (AffectI (nom,exp))
-
-let pr_affectB (nom : char list) : (programme, char) ranalist = fun l ->
-  l |> pr_Bexp ++> fun exp -> epsilon_res (AffectB (nom,exp))
-
-let pr_return : (return, char) ranalist = fun l ->
-  l |> t_return -+>
-         ((t_null -+> epsilon_res (Null))
-          +| (pr_aexp ++> fun aexp -> epsilon_res (ReturnI (aexp)))
-          +|  (pr_nom ++> fun nom -> epsilon_res (ReturnV (nom)))
-          +| (pr_Bexp ++> fun bexp -> epsilon_res (ReturnB (bexp))))
+(**
+type aexp =
+  | Arhi of int
   
+let isConstante =
+  fun ( c : char ) ->
+  c = '$'
 
-let rec pr_programme : (programme, char) ranalist = fun l ->
-  l |> pr_instruction ++> fun exp -> pr_separateur exp and
-    pr_instruction : (programme, char) ranalist = fun l ->
-      l |> pr_while +| pr_if +| pr_declaration +| pr_affectation +| pr_skip and
-    pr_declaration : (programme, char) ranalist = fun l ->
-      l |> (t_int -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Int, exp)))
-           +| (t_bool -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Bool, exp)))
-           +| (t_fun -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Fun, exp)))
-    and
-      pr_affectation : (programme, char) ranalist = fun l ->
-      l |> pr_nom ++> fun nom ->
-                      terminal ':' --> terminal '='
-                      -+> (pr_affectI nom +| pr_affectB nom +| pr_affectF nom) and
-    pr_affectF (nom : char list) : (programme, char) ranalist = fun l ->
-      l |> terminal '{' -+> pr_programme ++>
-             fun prog -> pr_return ++>
-                           fun ret -> terminal '}'-+> epsilon_res (AffectF (nom,prog,ret)) and
-      pr_if : (programme, char) ranalist = fun l ->
-      l |> t_if --> terminal '(' -+> pr_Bexp ++>
-             fun bexp -> terminal ')' --> terminal '{' -+> pr_programme ++>
-                           fun prog -> terminal '}' -+> pr_opt_if bexp prog and
-      pr_opt_if (bexp : bexp) (prog : programme) : (programme, char) ranalist = fun l ->
-        l |> (t_else -+> ( (pr_if ++> fun prog' -> epsilon_res (If (bexp,prog,prog') ) ) 
-                         +| (terminal '{' -+> pr_programme ++> fun prog' -> terminal '}' -+> epsilon_res (If (bexp,prog,prog')))))
-                         +| (epsilon_res (If (bexp,prog,Skip))) and
-      pr_while : (programme, char) ranalist = fun l ->
-        l |> t_while --> terminal '(' -+> pr_Bexp ++> fun bexp -> terminal ')' --> terminal '{' -+> pr_programme ++> fun prog -> terminal '}' -+> epsilon_res (While (bexp,prog)) and
-      pr_skip : (programme, char) ranalist = fun l ->
-        l |> epsilon_res (Skip) and
-      pr_separateur (exp : programme) : (programme, char) ranalist = fun l ->
-        l |> (terminal ';' -+> pr_programme ++> fun exp' -> epsilon_res (Seq (exp,exp')))
-             +| epsilon_res exp
+let isAexpR (c : char) : aexp option =
+  if (c = '$') then Some(Arhi(0)) else None
 
-let _ = pr_if (list_of_string ("if(true){}"))
-let _ = pr_programme (list_of_string ("inta:=2;funf:={intb:=true;returnb}"))
-let _ = pr_programme
-          (list_of_string
-             ("inta:=12+5;if(true){funf:={intb:=false;returnnull}}elseif(false){while(b){}}"))
+let p_aexp : char analist =
+  fun l ->
+  l |> terminal '$'
+
+let pr_aexp : (aexp, char) ranalist = terminal_res (isAexpR)**)
+
+(***********************************************************************************************************************)
+
+let isConstante =
+  fun ( c : char ) ->
+  let a = Char.code c - Char.code '0' in (a > (-1)) && (a < 2)
+
+let isVariable =
+  fun (c : char) ->
+  c= 'a' ||  c = 'b' || c = 'c' || c = 'd'
+
+(************************************** Analist **************************************)
+
+let p_True : char analist =
+  fun l ->
+  l |> (terminal 't' --> terminal 'r' --> terminal 'u' --> terminal 'e')
+
+let p_False : char analist =
+  fun l ->
+  l |> (terminal 'f' --> terminal 'a' --> terminal 'l' --> terminal 's' --> terminal 'e')
+  
+let p_TypeEspace : char analist =
+  fun l ->
+  l |> terminal ' ' -| terminal '\t' -| terminal '\n'
+
+let rec p_Espace : char analist =
+  fun l ->
+  l |> (p_TypeEspace --> p_Espace) -| epsilon
+
+let p_Constante : char analist =
+  fun l ->
+  l |> p_True -| p_False
+
+let p_Variable : char analist = p_nom
+
+let p_Sup_egale : char analist =
+  fun l ->
+  l |> p_aexp --> terminal '>' --> terminal '=' --> p_aexp
+
+let p_Sup : char analist =
+  fun l ->
+  l |> p_aexp --> terminal '>' --> p_aexp
+
+let p_Inf_egale : char analist =
+  fun l ->
+  l |> p_aexp --> terminal '<' --> terminal '=' --> p_aexp
+
+let p_Inf : char analist =
+  fun l ->
+  l |> p_aexp --> terminal '<' --> p_aexp
+
+let p_Comparaison : char analist =
+  fun l ->
+  l |> p_Sup_egale -| p_Sup -| p_Inf_egale -| p_Inf
+
+let p_Valeur : char analist =
+  fun l ->
+  l |> p_Variable -| p_Constante -| p_Comparaison
+
+let rec p_Bexp : char analist =
+  fun l ->
+  l |> p_Disjonction and
+    p_Disjonction : char analist =
+      fun l ->
+      l |> p_Conjonction --> p_Opt_Disjonction and
+    p_Opt_Disjonction : char analist =
+      fun l ->
+      l |> (p_Espace --> terminal '|' --> terminal '|' --> p_Espace --> p_Disjonction) -| epsilon and
+    p_Conjonction : char analist =
+      fun l ->
+      l |> p_Negation --> p_Opt_Conjonction and
+    p_Opt_Conjonction : char analist =
+      fun l ->
+      l |> (p_Espace --> terminal '&' --> terminal '&' --> p_Espace --> p_Conjonction) -| epsilon and
+    p_Negation : char analist =
+      fun l ->
+      l |> (p_Espace --> terminal '!' --> p_Espace --> p_Negation) -| p_Expression and
+    p_Expression : char analist =
+      fun l ->
+      l |> (terminal '(' --> p_Espace --> p_Bexp --> p_Espace --> terminal ')') -| p_Valeur
+
+
+let _ = p_Bexp (list_of_string "true&&jenesaispas")
+let _ = p_Bexp (list_of_string "false||Bonjour3")
+let _ = p_Bexp (list_of_string "true&&true")
+let _ = p_Bexp (list_of_string "true||false&&!jene")
+let _ = p_Bexp (list_of_string "true||false&&!true||var1")
+
+(****************************************Ranalist****************************************)
+
+type bexp =
+  | Bco of bool
+  | Bva of char list
+  | Bneg of bexp
+  | Band of bexp * bexp
+  | Bor of bexp * bexp
+  | Bsup of aexp * aexp
+  | Bsupeg of aexp * aexp
+  | Binf of aexp * aexp
+  | Binfeg of aexp * aexp
+
+(**let isBool (b : bool) (c : char) : bool option = if(c = 'e') then Some(b) else None
+
+let pr_Bool : (bool, char) ranalist = fun l ->
+  l |> (terminal 't' --> terminal 'r' --> terminal 'u' -+> terminal_res (isBool true)) +| (terminal 'f' --> terminal 'a' --> terminal 'l' --> terminal 's' -+> terminal_res (isBool false))
+ **)
+let pr_True : (bexp, char) ranalist =
+  fun l ->
+  l |> terminal 't' --> terminal 'r' --> terminal 'u' --> terminal 'e' -+> epsilon_res (Bco(true))
+
+let pr_False : (bexp, char) ranalist =
+  fun l ->
+  l |> terminal 'f' --> terminal 'a' --> terminal 'l' --> terminal 's' --> terminal 'e' -+> epsilon_res (Bco(false))
+
+let pr_Constante : (bexp, char) ranalist = pr_True +| pr_False
+
+let pr_Variable : (char list, char) ranalist = pr_nom
+
+let pr_Sup_egale : (bexp, char) ranalist =
+  fun l ->
+  l |> (pr_aexp ++> fun op1 -> terminal '>' --> terminal '=' -+> pr_aexp ++> fun op2 -> epsilon_res (Bsupeg(op1,op2)))
+
+let pr_Sup : (bexp, char) ranalist =
+  fun l ->
+  l |> pr_aexp ++> fun op1 -> terminal '>' -+> pr_aexp ++> fun op2 -> epsilon_res (Bsup(op1,op2))
+
+let pr_Inf_egale : (bexp, char) ranalist =
+  fun l ->
+    l |> pr_aexp ++> fun op1 -> terminal '<' --> terminal '=' -+> pr_aexp ++> fun op2 -> epsilon_res (Binfeg(op1,op2))
+
+let pr_Inf : (bexp, char) ranalist =
+  fun l ->
+   l |> pr_aexp ++> fun op1 -> terminal '<' -+> pr_aexp ++> fun op2 -> epsilon_res (Binf(op1,op2))
+
+let pr_Comparaison : (bexp, char) ranalist =
+  fun l ->
+  l |> pr_Sup_egale +| pr_Sup +| pr_Inf_egale +| pr_Inf
+
+let pr_Valeur : (bexp, char) ranalist =
+  fun l ->
+  l |> pr_Constante  +|  pr_Comparaison +| (pr_Variable ++> fun v->  epsilon_res (Bva v)) +| pr_Comparaison 
+
+let rec pr_Bexp : (bexp, char) ranalist =
+  fun l ->
+  l |> pr_Disjonction and
+    pr_Disjonction : (bexp, char) ranalist =
+      fun l ->
+      l |> pr_Conjonction ++> fun c -> pr_Opt_Disjonction c and
+    pr_Opt_Disjonction (acc : bexp) : (bexp, char) ranalist =
+      fun l ->
+      l |> (p_Espace --> terminal '|' --> terminal '|' --> p_Espace -+> pr_Disjonction ++> fun d ->  epsilon_res (Bor(acc, d))) +| epsilon_res acc and
+    pr_Conjonction : (bexp, char) ranalist =
+      fun l ->
+      l |> pr_Negation ++> fun n -> pr_Opt_Conjonction n and
+    pr_Opt_Conjonction (acc : bexp) : (bexp, char) ranalist =
+      fun l ->
+      l |> (p_Espace --> terminal '&' --> terminal '&' --> p_Espace -+> pr_Conjonction ++> fun c -> epsilon_res (Band(acc, c))) +| epsilon_res acc and
+    pr_Negation :(bexp, char) ranalist  =
+      fun l ->
+      l |> (p_Espace --> terminal '!' --> p_Espace -+> pr_Negation ++> fun n -> epsilon_res (Bneg(n))) +| pr_Expression and
+    pr_Expression : (bexp, char) ranalist =
+      fun l ->
+      l |> (terminal '(' --> p_Espace -+> pr_Bexp ++> fun b -> p_Espace --> terminal ')' --> p_Espace -+> epsilon_res b) +| pr_Valeur
+
+let _ = pr_Bexp (list_of_string "true")
+let _ = pr_Bexp (list_of_string "true&&jenesaispas")
+let _ = pr_Bexp (list_of_string "false||Bonjour3")
+let _ = pr_Bexp (list_of_string "true&&true")
+let _ = pr_Bexp (list_of_string "true||false&&!jene")
+let _ = pr_Bexp (list_of_string "true||false&&!true||var1")
+let _ = pr_Bexp (list_of_string "bonjour+3>6/2&&true")
