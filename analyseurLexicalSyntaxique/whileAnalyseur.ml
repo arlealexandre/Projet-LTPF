@@ -177,8 +177,8 @@ let pr_return : (return, char) ranalist = fun l ->
           +| (p_True -+> epsilon_res (ReturnB (Bco (true))))
           +| (p_False -+> epsilon_res (ReturnB (Bco (false))))
           +| (pr_nom ++> fun nom -> epsilon_res (ReturnV (nom)))
-          +| (pr_Bexp ++> fun bexp -> epsilon_res (ReturnB (bexp))))
-       +| (pr_aexp ++> fun aexp -> epsilon_res (ReturnI (aexp)))
+          +| (pr_Bexp ++> fun bexp -> epsilon_res (ReturnB (bexp)))
+          +| (pr_aexp ++> fun aexp -> epsilon_res (ReturnI (aexp))))
 
 let verif (res : programme) : (programme,char) ranalist = fun l ->
   match l with
@@ -222,7 +222,9 @@ let rec pr_programme : (programme, char) ranalist = fun l ->
         l |> (terminal ';' -+> pr_programme ++> fun exp' -> epsilon_res (Seq (exp,exp')))
              +| epsilon_res exp
 
-let _ = pr_programme (list_of_string "int a := 5+3*(2-2); if(a = 0){ fun b := { int c := 3; return c}} else if (a = 1) { a := 0 } else { a := 0 }")
+let _ = pr_programme
+          (list_of_string "int a := 5+3*(2-2); if(a = 0){ fun b := { int c := 3; return c}} else if (a = 1) { a := 0 } else { a := 0 }")
+let _ = pr_programme (list_of_string "if(true){}else if (false){} else {}")
 let _ = pr_programme (list_of_string "int a := 1; a := a + a")
 let _ = pr_programme (list_of_string "int a := 5; fun f := {return a}; a := a + f") 
 let _ = pr_if (list_of_string ("if(true){}"))
@@ -230,4 +232,4 @@ let _ = pr_programme (list_of_string ("inta:=2;funf:={intb:=true;returnb}"))
 let _ = pr_programme
           (list_of_string
              ("inta:=12+5;if(true){funf:={intb:=false;returnnull}}elseif(false){while(b){}}"))
-let _ = pr_programme (list_of_string ("fun f := { return a }"))
+let _ = pr_programme (list_of_string ("fun f := { return 1 }"))
