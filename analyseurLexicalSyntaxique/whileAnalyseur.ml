@@ -212,6 +212,8 @@ let rec pr_programme : (programme, char) ranalist = fun l ->
         l |> (terminal ';' -+> pr_programme ++> fun exp' -> epsilon_res (Seq (exp,exp')))
              +| epsilon_res exp
 
+let _ = pr_programme (list_of_string "int a := 5+3*(2-2); if(a = 0){ fun b := { int c := 3; return c}} else if (a = 1) { a := 0 } else { a := 0 }")
+
 let _ = pr_if (list_of_string ("if(true){}"))
 let _ = pr_programme (list_of_string ("inta:=2;funf:={intb:=true;returnb}"))
 let _ = pr_programme

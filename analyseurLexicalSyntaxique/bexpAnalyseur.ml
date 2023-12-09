@@ -150,6 +150,7 @@ type bexp =
   | Bneg of bexp
   | Band of bexp * bexp
   | Bor of bexp * bexp
+  | Beq of aexp * aexp
   | Bsup of aexp * aexp
   | Bsupeg of aexp * aexp
   | Binf of aexp * aexp
@@ -172,6 +173,9 @@ let pr_Constante : (bexp, char) ranalist = pr_True +| pr_False
 
 let pr_Variable : (char list, char) ranalist = pr_nom
 
+let pr_eq : (bexp, char) ranalist = fun l ->
+  l |> (pr_aexp ++> fun op1 -> terminal '=' -+> pr_aexp ++> fun op2 -> epsilon_res (Beq (op1,op2)))
+
 let pr_Sup_egale : (bexp, char) ranalist =
   fun l ->
   l |> (pr_aexp ++> fun op1 -> terminal '>' --> terminal '=' -+> pr_aexp ++> fun op2 -> epsilon_res (Bsupeg(op1,op2)))
@@ -190,7 +194,7 @@ let pr_Inf : (bexp, char) ranalist =
 
 let pr_Comparaison : (bexp, char) ranalist =
   fun l ->
-  l |> pr_Sup_egale +| pr_Sup +| pr_Inf_egale +| pr_Inf
+  l |> pr_eq +| pr_Sup_egale +| pr_Sup +| pr_Inf_egale +| pr_Inf
 
 let pr_Valeur : (bexp, char) ranalist =
   fun l ->
@@ -225,3 +229,4 @@ let _ = pr_Bexp (list_of_string "true&&true")
 let _ = pr_Bexp (list_of_string "true||false&&!jene")
 let _ = pr_Bexp (list_of_string "true||false&&!true||var1")
 let _ = pr_Bexp (list_of_string "bonjour+3>6/2&&true")
+let _ = pr_Bexp (list_of_string ("5+3=2-2"))
