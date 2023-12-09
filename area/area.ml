@@ -10,10 +10,6 @@ open State
 exception FileException of string
 exception OptionException of string
 
-(* ------------------------------------------------------------- Global ------------------------------------------------------------- *)
-
-let command_history : string list ref = ref []
-
 (* ------------------------------------------------------------- Files Functions ------------------------------------------------------------- *)
 
 let isDotArFile file_path = 
@@ -56,12 +52,10 @@ let next () = Printf.printf ">>"
 
 let help () = Printf.printf "Usage: ./area.byte                (to open the Area programming shell)\n    or ./area.byte <file_path>    (to execute an Area program)\n    or ./area.byte -i <file_path> (to execute an Area program step by step)\n"
 
-let print_command_history () =
-  Printf.printf "Command History:\n";
-  List.iteri (fun i cmd ->
-    Printf.printf "%d: %s\n" (i + 1) cmd
-  ) !command_history;
-  flush_all ()
+let clear_screen () = Printf.printf "\027[2J\027[H"
+
+let toCharList str =
+  List.of_seq (String.to_seq str)
 
 (* ------------------------------------------------------------- Print Functions ------------------------------------------------------------- *)
 
@@ -70,9 +64,13 @@ let rec infinite_loop () =
   let command = read_line () in
   match command with
   | "quit" -> ()
+  | "clear" -> clear_screen (); welcome (); infinite_loop ();
   | "help" -> let () = help () in infinite_loop ()
-  | "history" -> print_command_history (); infinite_loop ()
-  | _ -> command_history := command :: !command_history; infinite_loop ()
+  | _ -> let p = pr_Programme (toCharList command) in
+    let (a,s) = p in
+    let s' = executer a [] in let () = Printf.printf "Final state: "; in
+    print_interactive_result s';
+    infinite_loop ()
 
 let executeInteractiveProgram file_path = 
   let input_lines = read_program_from_file file_path in
@@ -105,6 +103,7 @@ let switchOptions o file_path =
 let () =
   match Array.length Sys.argv with
   | 1 ->
+    let () = clear_screen () in
     let () = welcome () in
     let () = infinite_loop () in 
     bye ()
