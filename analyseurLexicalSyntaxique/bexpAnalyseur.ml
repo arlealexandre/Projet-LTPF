@@ -198,7 +198,10 @@ let pr_Comparaison : (bexp, char) ranalist =
 
 let pr_Valeur : (bexp, char) ranalist =
   fun l ->
-  l |> pr_Constante  +|  pr_Comparaison +| (pr_Variable ++> fun v->  epsilon_res (Bva v)) +| pr_Comparaison 
+  l |> pr_Constante  +|  pr_Comparaison +| (pr_Variable ++> fun v->  epsilon_res (Bva v)) +| pr_Comparaison
+
+let not_Aexp : char analist = fun l ->
+  l |> ((terminal '+' -| terminal '-' -| terminal '*' -| terminal '/') --> let f = fun i -> false in terminal_cond (f)) -| epsilon
 
 let rec pr_Bexp : (bexp, char) ranalist =
   fun l ->
@@ -208,13 +211,13 @@ let rec pr_Bexp : (bexp, char) ranalist =
       l |> pr_Conjonction ++> fun c -> pr_Opt_Disjonction c and
     pr_Opt_Disjonction (acc : bexp) : (bexp, char) ranalist =
       fun l ->
-      l |> (p_Espace --> terminal '|' --> terminal '|' --> p_Espace -+> pr_Disjonction ++> fun d ->  epsilon_res (Bor(acc, d))) +| epsilon_res acc and
+      l |> not_Aexp -+> ((p_Espace --> terminal '|' --> terminal '|' --> p_Espace -+> pr_Disjonction ++> fun d ->  epsilon_res (Bor(acc, d))) +| epsilon_res acc) and
     pr_Conjonction : (bexp, char) ranalist =
       fun l ->
       l |> pr_Negation ++> fun n -> pr_Opt_Conjonction n and
     pr_Opt_Conjonction (acc : bexp) : (bexp, char) ranalist =
       fun l ->
-      l |> (p_Espace --> terminal '&' --> terminal '&' --> p_Espace -+> pr_Conjonction ++> fun c -> epsilon_res (Band(acc, c))) +| epsilon_res acc and
+      l |> not_Aexp -+> ((p_Espace --> terminal '&' --> terminal '&' --> p_Espace -+> pr_Conjonction ++> fun c -> epsilon_res (Band(acc, c))) +| epsilon_res acc) and
     pr_Negation :(bexp, char) ranalist  =
       fun l ->
       l |> (p_Espace --> terminal '!' --> p_Espace -+> pr_Negation ++> fun n -> epsilon_res (Bneg(n))) +| pr_Expression and
