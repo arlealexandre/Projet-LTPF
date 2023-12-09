@@ -56,21 +56,13 @@ let rec pr_aexp : (aexp, char) ranalist =
       l |> pr_M ++> fun a -> pr_SP a and
     pr_SP (x : aexp)  : (aexp, char) ranalist =
       fun l ->
-<<<<<<< HEAD
-      l |> (terminal '-' -+> pr_M ++> fun a -> pr_SP (Amo(x,a))) +|(terminal '+' -+> pr_M ++> fun a -> pr_SP (Apl(x,a))) +| (epsilon_res x) and
-=======
       l |> notBexp -+> ((terminal '-' -+> pr_M ++> fun a -> pr_SP (Amo(x,a))) +| (terminal '+' -+> pr_M ++> fun a -> pr_SP (Apl(x,a))) +| epsilon_res x) and
->>>>>>> 71605c02e0a313f71ddb32c7ccae4b487af5537f
     pr_M : (aexp, char) ranalist =
       fun l ->
       l |> pr_T1 ++> fun a -> pr_SM a and
     pr_SM (x : aexp)  : (aexp, char) ranalist =
       fun l ->
-<<<<<<< HEAD
-      l |> (terminal '*' -+> pr_T1 ++> fun a -> pr_SM (Amu(x,a))) +|  (terminal '/' -+> pr_T1 ++> fun a -> pr_SM (Adi(x,a))) +| (epsilon_res x) and
-=======
       l |> notBexp -+> ((terminal '*' -+> pr_T1 ++> fun a -> pr_SM (Amu(x,a))) +|  (terminal '/' -+> pr_T1 ++> fun a -> pr_SM (Adi(x,a))) +| epsilon_res x) and
->>>>>>> 71605c02e0a313f71ddb32c7ccae4b487af5537f
     pr_T1 : (aexp, char) ranalist =
       fun l ->
       l |> (pr_int ++> fun i -> pr_int_suite i) +| (terminal '(' -+> pr_aexp ++> fun a -> terminal ')' -+> epsilon_res a)  +| (pr_nom ++> fun nom -> epsilon_res (Ava nom)) and
