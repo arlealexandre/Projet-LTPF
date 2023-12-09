@@ -178,21 +178,30 @@ let pr_return : (return, char) ranalist = fun l ->
           +| (p_False -+> epsilon_res (ReturnB (Bco (false))))
           +| (pr_nom ++> fun nom -> epsilon_res (ReturnV (nom)))
           +| (pr_Bexp ++> fun bexp -> epsilon_res (ReturnB (bexp))))
-          +| (pr_aexp ++> fun aexp -> epsilon_res (ReturnI (aexp)))          
+       +| (pr_aexp ++> fun aexp -> epsilon_res (ReturnI (aexp)))
+
+let verif (res : programme) : (programme,char) ranalist = fun l ->
+  match l with
+  | [] -> epsilon_res res l
+  | x::q when (x = ';') -> epsilon_res res l
+  | _ -> raise Echec
 
 let rec pr_programme : (programme, char) ranalist = fun l ->
   l |> pr_instruction ++> fun exp -> pr_separateur exp and
     pr_instruction : (programme, char) ranalist = fun l ->
       l |> pr_while +| pr_if +| pr_declaration +| pr_affectation +| pr_skip and
     pr_declaration : (programme, char) ranalist = fun l ->
-      l |> (t_int -+> pr_affectaction ++> fun exp -> epsilon_res (Declaration (Int, exp)))
+      l |> (t_int -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Int, exp)))
            +| (t_bool -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Bool, exp)))
            +| (t_fun -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Fun, exp)))
     and
       pr_affectation : (programme, char) ranalist = fun l ->
       l |> pr_nom ++> fun nom ->
-                      terminal ':' --> terminal '='
-                      -+> (pr_affectB nom +| pr_affectI nom +| pr_affectF nom) and
+                      terminal ':' --> terminal '=' -+> pr_affectValeur nom and
+    pr_affectValeur (nom : char list) : (programme,char) ranalist = fun l ->
+      l |> (pr_affectB nom ++> fun res -> verif res)
+           +| (pr_affectI nom ++> fun res -> verif res)
+           +| pr_affectF nom and
     pr_affectF (nom : char list) : (programme, char) ranalist = fun l ->
       l |> terminal '{' -+> pr_programme ++>
              fun prog -> pr_return ++>
@@ -214,7 +223,8 @@ let rec pr_programme : (programme, char) ranalist = fun l ->
              +| epsilon_res exp
 
 let _ = pr_programme (list_of_string "int a := 5+3*(2-2); if(a = 0){ fun b := { int c := 3; return c}} else if (a = 1) { a := 0 } else { a := 0 }")
-
+let _ = pr_programme (list_of_string "int a := 1; a := a + a")
+let _ = pr_programme (list_of_string "int a := 5; fun f := {return a}; a := a + f") 
 let _ = pr_if (list_of_string ("if(true){}"))
 let _ = pr_programme (list_of_string ("inta:=2;funf:={intb:=true;returnb}"))
 let _ = pr_programme
