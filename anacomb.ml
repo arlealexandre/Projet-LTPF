@@ -2,11 +2,17 @@
 
 (* Utilitaire pour les tests *)
 
+let rec parse = fun (l:char list) ->
+  match l with
+  | [] -> []
+  | x::q when (x='\n' || x=' ' || x='\t') -> parse q
+  | x::q -> x::(parse q)
+
 let list_of_string s =
   let n = String.length s in
   let rec boucle i =
     if i = n then [] else s.[i] :: boucle (i+1)
-  in boucle 0
+  in let res = boucle 0 in parse res
 
 (* Le type des aspirateurs (fonctions qui aspirent le préfixe d'une liste) *)
 type 'term analist = 'term list -> 'term list

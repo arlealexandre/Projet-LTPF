@@ -1,15 +1,12 @@
-#use "whileB.ml"
-
-(* On utilisera l'état défini ci-après dans tout le programme *)
-let state = true::false::false::true::true::[]
+open Bexp
+open WhileB
+open Anacomb
 
 (* Permet d'initialiser toutes les variables d'un état à 0 *)
 let rec initState (s:bool list) : bool list =
   match s with
   | [] -> []
   | x::q -> false::(initState q)
-
-let _ = assert(initState state = [false;false;false;false;false])
 
 (* Permet de lire la valeur de la variable x dans l'état s *)
 let rec get (x:int) (s:bool list) : bool =
@@ -18,14 +15,6 @@ let rec get (x:int) (s:bool list) : bool =
   | i , x::l1 -> get (i-1) l1
   | _, [] -> false
 
-let _ = assert((get (0) state) = true)
-let _ = assert((get (1) state) = false)
-let _ = assert((get (2) state) = false)
-let _ = assert((get (3) state) = true)
-let _ = assert((get (4) state) = true)
-
-(* Par défaut on renvoie false *)
-let _ = assert((get (5) state) = false)
 
 (* Permet de mettre à jour la variable v à la valeur n dans l'état s *) 
 let rec update (s:bool list) (v:int) (n:bool): bool list =
@@ -35,9 +24,6 @@ let rec update (s:bool list) (v:int) (n:bool): bool list =
   | i, a :: l1 -> a :: (update l1 (i-1) n)
   | i, nil     -> false :: (update nil (i-1) n)
 
-let _ = assert((get (0) (update state 0 false)) = false)
-let _ = assert((get (5) (update state 5 true)) = true)
-
 (* Permet d'évaluer une expression de type bexp *)
 let rec evalB = fun b s ->
   match b with
@@ -46,11 +32,6 @@ let rec evalB = fun b s ->
   | Bneg(n) -> not (evalB n s)
   | Band(x1, x2) -> (evalB x1 s) && (evalB x2 s)
   | Bor(x1, x2) -> (evalB x1 s) || (evalB x2 s)
-
-let _ = evalB (Bva('b')) state
-let _ = evalB (Bneg(Bva('a'))) state
-let _ = evalB (Band(Bva('a'), Bva('b'))) state
-let _ = evalB (Bor(Bva('a'), Bva('b'))) state
 
 (* Permet d'évaluer une expression de type whileb *)
 let rec evalW = fun w s ->
@@ -68,20 +49,6 @@ let rec evalW = fun w s ->
        let s' = evalW i1 s in evalW (While (c,i1)) s'
      else
        s;;
-
-(* On créer ici deux programmes *)
-let progAffect = pr_Programme (list_of_string "a:=0;b:=1;c:=0")
-let progIf = pr_Programme (list_of_string "a:=0;b:=1;c:=1; i (b){a:=b}{a:=!b}")
-let progi = pr_Programme (list_of_string "i(b) 
-
-{a := b } 
-
-{a:=!b}")
-
-let _ = let (a,s) = progi in evalW a []
-(* Répond à la question 2.2.1 et 2.2.2 *)
-let _ = assert((let (a,s) = progAffect in evalW a []) = [false;true;false])
-let _ = assert((let (a,s) = progIf in evalW a []) = [true;true;true])
 
 type config =
   | Inter of whileB * (bool list)
@@ -104,18 +71,12 @@ let faire_un_pas = fun p s ->
      else
        Final s
 
-(* Nous testons ici l'exécution pas-à-pas du programme progAffect i.e la première affectation a:=0 *)
-let _ = assert((let (a,s) = progAffect in faire_un_pas a []) = Inter (Seq (Affect ('b', Bco true), Affect ('c', Bco false)), [false]))
-
 (* Permet d'exécuter entièrement un programme p dans l'état s *)
 let rec executer = fun p s ->
   match faire_un_pas p s with
   | Final s -> s
   | Inter (p',s') -> executer p' s' 
   
-let _ = assert((let (a,s) = progAffect in executer a []) = [false;true;false])
-let _ = assert((let (a,s) = progIf in executer a []) = [true;true;true])
-
 (* Permet d'effectuer un pas dans l'exécution du programme p dans l'état s *)
 let faire_un_pas_avec_cpt = fun p cpt s ->
   match p with
@@ -133,33 +94,26 @@ let faire_un_pas_avec_cpt = fun p cpt s ->
      else
       (Final s, cpt+1)
 
-let _ = let (a,s) = progAffect in faire_un_pas_avec_cpt a 0 []
-
 let rec executer_avec_cpt = fun p cpt s ->
   match faire_un_pas_avec_cpt p cpt s with
   | Final s, c -> (s,c)
   | Inter (p',s'), c -> executer_avec_cpt p' c s'
 
-let _ = let (a,s) = progIf in executer_avec_cpt a 0 []
-
-let rec execution_interactive = fun p s cpt ->
-  match faire_un_pas_avec_cpt p s cpt with
-  | Final s', c ->
-    Printf.printf "Le programme a exécuté %d instruction(s).\n" c;
-    s'
-  | Inter (p', s'), c ->
-    Printf.printf "Etape n° %d. Entrer pour continuer...\n" c;
-    ignore (read_line ());
-    execution_interactive p' c s'
-
-let _ = let (a,s) = progAffect in execution_interactive a 0 []
-
-let print_executer_result result =
+let print_interactive_result result = let () = Printf.printf "[" in
   let rec loop = function
-    | [] -> ()
-    | true :: rest -> print_endline "true"; loop rest
-    | false :: rest -> print_endline "false"; loop rest
+    | [] -> Printf.printf "]\n";
+    | true :: rest -> if rest=[] then (Printf.printf "1"; loop rest) else (Printf.printf "1; "; loop rest)
+    | false :: rest -> if rest=[] then (Printf.printf "0"; loop rest) else (Printf.printf "0; "; loop rest)
   in
   loop result
 
-
+let rec execution_interactive = fun p s cpt ->
+  match faire_un_pas_avec_cpt p s cpt with
+  | Final s', c -> Printf.printf "Final state: "; print_interactive_result s';
+    Printf.printf "\nThe program has executed %d instruction(s).\n" c;
+    s'
+  | Inter (p', s'), c ->
+    Printf.printf ("Step %d: ") c;
+    print_interactive_result s';
+    ignore (read_line ());
+    execution_interactive p' c s'
