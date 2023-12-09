@@ -45,6 +45,8 @@ let is_Int (c : char) : 'res option =
   let x = Char.code c - Char.code '0' in
   if (x >= 0 && x < 10) then Some(x) else None
 
+let notBexp : char analist = fun l -> l |> ((terminal '&' -| terminal '|') --> raise Echec) -| epsilon
+
 let rec pr_aexp : (aexp, char) ranalist =
   fun l ->
   l |> pr_P and
@@ -53,13 +55,13 @@ let rec pr_aexp : (aexp, char) ranalist =
       l |> pr_M ++> fun a -> pr_SP a and
     pr_SP (x : aexp)  : (aexp, char) ranalist =
       fun l ->
-      l |> (terminal '-' -+> pr_M ++> fun a -> pr_SP (Amo(x,a))) +|(terminal '+' -+> pr_M ++> fun a -> pr_SP (Apl(x,a))) +| (epsilon_res x) and
+      l |> (notBexp -+> (terminal '-' -+> pr_M ++> fun a -> pr_SP (Amo(x,a))) +|(terminal '+' -+> pr_M ++> fun a -> pr_SP (Apl(x,a))) +| (epsilon_res x)) and
     pr_M : (aexp, char) ranalist =
       fun l ->
       l |> pr_T1 ++> fun a -> pr_SM a and
     pr_SM (x : aexp)  : (aexp, char) ranalist =
       fun l ->
-      l |> (terminal '*' -+> pr_T1 ++> fun a -> pr_SM (Amu(x,a))) +|  (terminal '/' -+> pr_T1 ++> fun a -> pr_SM (Adi(x,a))) +| (epsilon_res x) and
+      l |> (notBexp -+> (terminal '*' -+> pr_T1 ++> fun a -> pr_SM (Amu(x,a))) +|  (terminal '/' -+> pr_T1 ++> fun a -> pr_SM (Adi(x,a))) +| (epsilon_res x)) and
     pr_T1 : (aexp, char) ranalist =
       fun l ->
       l |> (pr_int ++> fun i -> pr_int_suite i) +| (terminal '(' -+> pr_aexp ++> fun a -> terminal ')' -+> epsilon_res a)  +| (pr_nom ++> fun nom -> epsilon_res (Ava nom)) and
@@ -69,7 +71,7 @@ let rec pr_aexp : (aexp, char) ranalist =
       l |> (terminal_res(is_Int) ++> fun i' -> pr_int_suite (i*10+i')) +| epsilon_res (Acst (i))
 
 let _ = pr_aexp (list_of_string ("3+2/5*224+jaime_trop_les_gens"))
-
+let _ = pr_aexp (list_of_string ("3+2/5*224"))
 
 
 

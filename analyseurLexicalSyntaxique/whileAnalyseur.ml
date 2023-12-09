@@ -174,19 +174,20 @@ let pr_affectB (nom : char list) : (programme, char) ranalist = fun l ->
 let pr_return : (return, char) ranalist = fun l ->
   l |> t_return -+>
          ((t_null -+> epsilon_res (Null))
-          +| (pr_aexp ++> fun aexp -> epsilon_res (ReturnI (aexp)))
-          +|  (pr_nom ++> fun nom -> epsilon_res (ReturnV (nom)))
+          +| (p_True -+> epsilon_res (ReturnB (Bco (true))))
+          +| (p_False -+> epsilon_res (ReturnB (Bco (false))))
+          +| (pr_nom ++> fun nom -> epsilon_res (ReturnV (nom)))
           +| (pr_Bexp ++> fun bexp -> epsilon_res (ReturnB (bexp))))
-  
+          +| (pr_aexp ++> fun aexp -> epsilon_res (ReturnI (aexp)))          
 
 let rec pr_programme : (programme, char) ranalist = fun l ->
   l |> pr_instruction ++> fun exp -> pr_separateur exp and
     pr_instruction : (programme, char) ranalist = fun l ->
       l |> pr_while +| pr_if +| pr_declaration +| pr_affectation +| pr_skip and
     pr_declaration : (programme, char) ranalist = fun l ->
-      l |> (t_int -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Int, exp)))
-           +| (t_bool -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Bool, exp)))
-           +| (t_fun -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Fun, exp)))
+      l |> (t_int -+> pr_affectI ++> fun exp -> epsilon_res (Declaration (Int, exp)))
+           +| (t_bool -+> pr_affectB ++> fun exp -> epsilon_res (Declaration (Bool, exp)))
+           +| (t_fun -+> pr_affectF ++> fun exp -> epsilon_res (Declaration (Fun, exp)))
     and
       pr_affectation : (programme, char) ranalist = fun l ->
       l |> pr_nom ++> fun nom ->
@@ -219,3 +220,4 @@ let _ = pr_programme (list_of_string ("inta:=2;funf:={intb:=true;returnb}"))
 let _ = pr_programme
           (list_of_string
              ("inta:=12+5;if(true){funf:={intb:=false;returnnull}}elseif(false){while(b){}}"))
+let _ = pr_programme (list_of_string ("fun f := { return a }"))
