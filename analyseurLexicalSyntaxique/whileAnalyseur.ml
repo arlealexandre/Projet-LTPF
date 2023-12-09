@@ -185,9 +185,9 @@ let rec pr_programme : (programme, char) ranalist = fun l ->
     pr_instruction : (programme, char) ranalist = fun l ->
       l |> pr_while +| pr_if +| pr_declaration +| pr_affectation +| pr_skip and
     pr_declaration : (programme, char) ranalist = fun l ->
-      l |> (t_int -+> pr_affectI ++> fun exp -> epsilon_res (Declaration (Int, exp)))
-           +| (t_bool -+> pr_affectB ++> fun exp -> epsilon_res (Declaration (Bool, exp)))
-           +| (t_fun -+> pr_affectF ++> fun exp -> epsilon_res (Declaration (Fun, exp)))
+      l |> (t_int -+> pr_affectaction ++> fun exp -> epsilon_res (Declaration (Int, exp)))
+           +| (t_bool -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Bool, exp)))
+           +| (t_fun -+> pr_affectation ++> fun exp -> epsilon_res (Declaration (Fun, exp)))
     and
       pr_affectation : (programme, char) ranalist = fun l ->
       l |> pr_nom ++> fun nom ->
