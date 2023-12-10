@@ -1,4 +1,8 @@
-#use "whileAnalyseur.ml";;
+open Anacomb
+open VariableAnalyseur
+open AexpAnalyseur
+open BexpAnalyseur
+open WhileAnalyseur
 
 type variable = typeV * (char list)
 
@@ -150,7 +154,7 @@ evalW = fun w s ->
 (* On créer ici deux programmes *)
 let progAffect = pr_programme (list_of_string "int a := 5+2; bool b := true; fun f := { return a };")
 let progFun = pr_programme (list_of_string "int a := 1; fun f := { a := 3; return a }; a := a + f; a := a + f")
-
+let progIf = pr_programme (list_of_string "if(false){int a := 1} else if(true) {int a := 2}{}")
 let progTest = pr_programme (list_of_string "int a := 1; int b := a; int c := b; a := b + c")
 
 let _ = let (a,s) = progTest in evalW a []
