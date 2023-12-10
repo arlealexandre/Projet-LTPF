@@ -1,1 +1,2 @@
-anacomb.ml
+*.cmo
+*.cmi

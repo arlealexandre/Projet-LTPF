@@ -1,8 +1,10 @@
 (* ------------------------------------------------------------- Modules ------------------------------------------------------------- *)
 
 open Anacomb
-open Bexp
-open WhileB
+open VariableAnalyseur
+open AexpAnalyseur
+open BexpAnalyseur
+open WhileAnalyseur
 open State
 
 (* ------------------------------------------------------------- Exceptions ------------------------------------------------------------- *)
@@ -66,7 +68,7 @@ let rec infinite_loop () =
   | "quit" -> ()
   | "clear" -> clear_screen (); welcome (); infinite_loop ();
   | "help" -> let () = help () in infinite_loop ()
-  | _ -> let p = pr_Programme (toCharList command) in
+  | _ -> let p = pr_programme (list_of_string command) in
     let (a,s) = p in
     let s' = executer a [] in let () = Printf.printf "Final state: "; in
     print_interactive_result s';
@@ -75,7 +77,7 @@ let rec infinite_loop () =
 let executeInteractiveProgram file_path = 
   let input_lines = read_program_from_file file_path in
   let input = String.concat "\n" input_lines in
-  let prog = pr_Programme (list_of_string input) in
+  let prog = pr_programme (list_of_string input) in
   let (a, s) = prog in
   let s' =  execution_interactive a 0 [] in ignore(s')
 
@@ -83,7 +85,7 @@ let executeProgram file_path =
   let input_lines = read_program_from_file file_path in
   let input = String.concat "\n" input_lines in
   print_endline ("\n" ^ input ^ "\n");
-  let prog = pr_Programme (list_of_string input) in
+  let prog = pr_programme (list_of_string input) in
   let (a, s) = prog in
   let s' = executer a [] in let () = Printf.printf "Final state: "; in
   print_interactive_result s'
