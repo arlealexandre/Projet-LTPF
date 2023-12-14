@@ -156,4 +156,21 @@ let rec pr_programme : (programme, char) ranalist = fun l ->
         l |> epsilon_res (Skip) and
       pr_separateur (exp : programme) : (programme, char) ranalist = fun l ->
         l |> (terminal ';' -+> pr_programme ++> fun exp' -> epsilon_res (Seq (exp,exp')))
+<<<<<<< HEAD
              +| epsilon_res exp
+=======
+             +| epsilon_res exp
+
+let _ = pr_programme
+          (list_of_string "int a := 5+3*(2-2); if(a = 0){ fun b := { int c := 3; return c}} else if (a = 1) { a := 0 } else { a := 0 }")
+let _ = pr_programme (list_of_string "if(true){int a := 1}else if (false){} else {}")
+let _ = pr_programme (list_of_string "int a := a")
+let _ = pr_programme (list_of_string "int a := 1; a := a + a")
+let _ = pr_programme (list_of_string "int a := 5; fun f := {return a}; a := a + f") 
+let _ = pr_if (list_of_string ("if(true){}"))
+let _ = pr_programme (list_of_string ("inta:=2;funf:={intb:=true;returnb}"))
+let _ = pr_programme
+          (list_of_string
+             ("inta:=12+5;if(true){funf:={intb:=false;returnnull}}elseif(false){while(b){}}"))
+let _ = pr_programme (list_of_string ("fun f := { return 1 }"))
+>>>>>>> 7988b007f42366d1d1998cc0aca99525a0a83e19

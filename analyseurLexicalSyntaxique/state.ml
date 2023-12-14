@@ -33,6 +33,11 @@ let rec get (x:char list) (s:state) : valeur =
   | (var,vale)::q when (contains x var) -> vale
   | (var,vale)::q -> get x q
 
+<<<<<<< HEAD
+=======
+let _ = get (list_of_string "a2")  etat
+
+>>>>>>> 7988b007f42366d1d1998cc0aca99525a0a83e19
 let rec verifType (t:typeV) (v:valeur) (s : state) : bool =
   match t,v with
   | (Int, ArithExp (x)) -> true
@@ -63,7 +68,11 @@ update (s:state) (v:char list) (n:valeur): state =
        (var,n)::q
      else
        raise (ExceptionType "mauvais type")
+<<<<<<< HEAD
   | (var,vale)::q -> (var,vale)::(update q v n)
+=======
+  | (var,vale)::q -> update q v n
+>>>>>>> 7988b007f42366d1d1998cc0aca99525a0a83e19
 and
 evalV = fun (v : char list) (s:state) ->
   let res = get v s in
@@ -133,6 +142,21 @@ evalW = fun w s ->
      else
        s;;
 
+<<<<<<< HEAD
+=======
+(* On créer ici deux programmes *)
+let progAffect = pr_programme (list_of_string "int a := 5+2; bool b := true; fun f := { return a };")
+let progFun = pr_programme (list_of_string "int a := 1; fun f := { a := 3; return a }; a := a + f; a := a + f")
+
+let progTest = pr_programme (list_of_string "int a := 1; int b := a; int c := b; a := b + c")
+
+let _ = let (a,s) = progTest in evalW a []
+
+let _ = let (a,s) = progAffect in evalW a []
+
+let _ = let (b,s) = progFun in evalW b []
+
+>>>>>>> 7988b007f42366d1d1998cc0aca99525a0a83e19
 type config =
   | Inter of programme * state
   | Final of state
