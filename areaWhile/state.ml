@@ -49,11 +49,6 @@ let rec get (x:char list) (s:state) : valeur =
   | (var,vale)::q when (contains x var) -> vale
   | (var,vale)::q -> get x q
 
-<<<<<<< HEAD:areaWhile/state.ml
-=======
-let _ = get (list_of_string "a2")  etat
-
->>>>>>> 7988b007f42366d1d1998cc0aca99525a0a83e19:area/state.ml
 let rec verifType (t:typeV) (v:valeur) (s : state) : bool =
   match t,v with
   | (Int, ArithExp (x)) -> true
@@ -84,11 +79,7 @@ update (s:state) (v:char list) (n:valeur): state =
        (var,n)::q
      else
        raise (ExceptionType "mauvais type")
-<<<<<<< HEAD:areaWhile/state.ml
   | (var,vale)::q -> (var,vale)::(update q v n)
-=======
-  | (var,vale)::q -> update q v n
->>>>>>> 7988b007f42366d1d1998cc0aca99525a0a83e19:area/state.ml
 and
 evalV = fun (v : char list) (s:state) ->
   let res = get v s in
@@ -226,13 +217,7 @@ let faire_un_pas_avec_cpt = fun p cpt s ->
        let s' = evalW i1 s in (Inter ((While (c, i1)), s'), cpt)
      else
       (Final s, cpt+1)
-<<<<<<< HEAD:areaWhile/state.ml
       
-=======
-
-let _ = let (a,s) = progAffect in faire_un_pas_avec_cpt a 0 []
-
->>>>>>> 7988b007f42366d1d1998cc0aca99525a0a83e19:area/state.ml
 let rec executer_avec_cpt = fun p cpt s ->
   match faire_un_pas_avec_cpt p cpt s with
   | Final s, c -> (s,c)
