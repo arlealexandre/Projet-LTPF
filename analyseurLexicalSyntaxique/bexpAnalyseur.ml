@@ -36,26 +36,6 @@ Negation        ::= Espace · '!' · Espace · Negation | Expression
 Expression      ::= Valeur | '(' · Espace · Bexp · Espace · ')'
 
  ***)
-(************************************* A supprimer : temp aexp *********************************************************)
-
-(**
-type aexp =
-  | Arhi of int
-  
-let isConstante =
-  fun ( c : char ) ->
-  c = '$'
-
-let isAexpR (c : char) : aexp option =
-  if (c = '$') then Some(Arhi(0)) else None
-
-let p_aexp : char analist =
-  fun l ->
-  l |> terminal '$'
-
-let pr_aexp : (aexp, char) ranalist = terminal_res (isAexpR)**)
-
-(***********************************************************************************************************************)
 
 let isConstante =
   fun ( c : char ) ->
@@ -135,13 +115,6 @@ let rec p_Bexp : char analist =
       fun l ->
       l |> (terminal '(' --> p_Espace --> p_Bexp --> p_Espace --> terminal ')') -| p_Valeur
 
-
-let _ = p_Bexp (list_of_string "true&&jenesaispas")
-let _ = p_Bexp (list_of_string "false||Bonjour3")
-let _ = p_Bexp (list_of_string "true&&true")
-let _ = p_Bexp (list_of_string "true||false&&!jene")
-let _ = p_Bexp (list_of_string "true||false&&!true||var1")
-
 (****************************************Ranalist****************************************)
 
 type bexp =
@@ -156,11 +129,6 @@ type bexp =
   | Binf of aexp * aexp
   | Binfeg of aexp * aexp
 
-(**let isBool (b : bool) (c : char) : bool option = if(c = 'e') then Some(b) else None
-
-let pr_Bool : (bool, char) ranalist = fun l ->
-  l |> (terminal 't' --> terminal 'r' --> terminal 'u' -+> terminal_res (isBool true)) +| (terminal 'f' --> terminal 'a' --> terminal 'l' --> terminal 's' -+> terminal_res (isBool false))
- **)
 let pr_True : (bexp, char) ranalist =
   fun l ->
   l |> terminal 't' --> terminal 'r' --> terminal 'u' --> terminal 'e' -+> epsilon_res (Bco(true))
@@ -221,12 +189,3 @@ let rec pr_Bexp : (bexp, char) ranalist =
     pr_Expression : (bexp, char) ranalist =
       fun l ->
       l |> (terminal '(' --> p_Espace -+> pr_Bexp ++> fun b -> p_Espace --> terminal ')' --> p_Espace -+> epsilon_res b) +| pr_Valeur
-
-let _ = pr_Bexp (list_of_string "true")
-let _ = pr_Bexp (list_of_string "true&&jenesaispas")
-let _ = pr_Bexp (list_of_string "false||Bonjour3")
-let _ = pr_Bexp (list_of_string "true&&true")
-let _ = pr_Bexp (list_of_string "true||false&&!jene")
-let _ = pr_Bexp (list_of_string "true||false&&!true||var1")
-let _ = pr_Bexp (list_of_string "bonjour+3>6/2&&true")
-let _ = pr_Bexp (list_of_string ("5+3=2-2"))

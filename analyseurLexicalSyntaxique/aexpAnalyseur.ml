@@ -1,5 +1,6 @@
 #use "anacomb.ml";;
 #use "variableAnalyseur.ml";;
+
 type aexp =
   | Acst of int
   | Ava of char list
@@ -14,7 +15,7 @@ E ::= P
 P ::= M SP
 M ::= T SM
 SP ::= ’+’  M SP | '-' M SP | ε
-SM ::= '*' T SM | ε
+SM ::= '*' T SM | '/' T SM | ε
 T := C | '(' E ')'
  ***)
 
@@ -35,11 +36,9 @@ let rec p_aexp : char analist = fun l ->
     p_plus_opt : char analist = fun l ->
       l |> (terminal '+' --> p_mul --> p_plus_opt) -| (terminal '-' --> p_mul --> p_plus_opt) -| epsilon and
     p_mul_opt : char analist = fun l ->
-      l |> (terminal '*' --> p_number --> p_mul_opt) -| epsilon and
+      l |> (terminal '*' --> p_number --> p_mul_opt) -| (terminal '/' --> p_number --> p_mul_opt) -| epsilon and
     p_number : char analist = fun l ->
       l |> p_nombre -| (terminal '(' --> p_aexp --> terminal ')') -| p_nom
-
-let _ = p_aexp (list_of_string ("a+5-b*tri_insertion_polyglote"))
 
 let is_Int (c : char) : 'res option =
   let x = Char.code c - Char.code '0' in
@@ -67,11 +66,5 @@ let rec pr_aexp : (aexp, char) ranalist =
       l |> terminal_res (is_Int) and
     pr_int_suite (i : int) : (aexp, char) ranalist = fun l ->
       l |> (terminal_res(is_Int) ++> fun i' -> pr_int_suite (i*10+i')) +| epsilon_res (Acst (i))
-
-let _ = pr_aexp (list_of_string ("3+2/5*224+jaime_trop_les_gens"))
-let _ = pr_aexp (list_of_string ("3+2/5*224"))
-let _ = pr_aexp (list_of_string "3")
-let _ = pr_aexp (list_of_string "3&5")
-
 
 

@@ -1,9 +1,10 @@
 #use "anacomb.ml";;
+
 (***
 Grammaire : 
 
-Variable ::= nom . suite
-Suite ::= char | digit | epsilon
+Variable ::= char · suite
+Suite ::= char | digit | '_' | Ɛ
 
 ***)
 
